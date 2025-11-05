@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tea Shop Sales</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"></script>
+  <style>
+    body { font-family: Arial; margin: 20px; }
+    h1 { color: brown; }
+    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+    .btn { background: brown; color: white; padding: 10px; border: none; cursor: pointer; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <h1>☕ Tea Shop Billing</h1>
+  
+  <table>
+    <tr><th>Item</th><th>Price</th><th>Qty</th><th>Total</th></tr>
+    <tr><td>Tea</td><td>10</td><td><input type="number" id="tea" value="0"></td><td id="teaTotal">0</td></tr>
+    <tr><td>Coffee</td><td>15</td><td><input type="number" id="coffee" value="0"></td><td id="coffeeTotal">0</td></tr>
+    <tr><td>Horlicks</td><td>20</td><td><input type="number" id="horlicks" value="0"></td><td id="horlicksTotal">0</td></tr>
+    <tr><td>Vadai</td><td>10</td><td><input type="number" id="vadai" value="0"></td><td id="vadaiTotal">0</td></tr>
+    <tr><td>Bajji</td><td>10</td><td><input type="number" id="bajji" value="0"></td><td id="bajjiTotal">0</td></tr>
+    <tr><td>Samosa</td><td>12</td><td><input type="number" id="samosa" value="0"></td><td id="samosaTotal">0</td></tr>
+    <tr><td>Bonda</td><td>10</td><td><input type="number" id="bonda" value="0"></td><td id="bondaTotal">0</td></tr>
+  </table>
+
+  <h2>Total: ₹<span id="totalAmount">0</span></h2>
+  <button class="btn" onclick="calculateTotal()">Calculate</button>
+  <button class="btn" onclick="saveSale()">Save & Pay</button>
+
+  <h3>Scan to Pay</h3>
+  <img id="upiQR" src="" width="200" alt="UPI QR will appear here">
+
+  <hr>
+  <h2>📊 Daily Report</h2>
+  <pre id="dailyReport"></pre>
+
+  <script>
+    // ✅ Firebase setup
+    const firebaseConfig = {
+      apiKey: "YOUR_FIREBASE_KEY",
+      authDomain: "tea-shop-sales.firebaseapp.com",
+      projectId: "tea-shop-sales",
+      storageBucket: "tea-shop-sales.appspot.com",
+      messagingSenderId: "1234567890",
+      appId: "APP_ID_HERE"
+    };
+
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const prices = { tea: 10, coffee: 15, horlicks: 20, vadai: 10, bajji: 10, samosa: 12, bonda: 10 };
+    let total = 0;
+
+    function calculateTotal() {
+      total = 0;
+      for (let item in prices) {
+        let qty = Number(document.getElementById(item).value);
+        let itemTotal = qty * prices[item];
+        document.getElementById(item + "Total").innerText = itemTotal;
+        total += itemTotal;
+      }
+      document.getElementById("totalAmount").innerText = total;
+      document.getElementById("upiQR").src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=yourupi@okaxis&pn=Tea%20Shop&am=${total}`;
+    }
+
+    async function saveSale() {
+      const now = new Date();
+      await db.collection("sales").add({
+        totalAmount: total,
+        date: now
+      });
+      alert("Sale saved!");
+      showDailyReport();
+    }
+
+    async function showDailyReport() {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const snapshot = await db.collection("sales").where("date", ">=", today).get();
+      let totalDay = 0;
+      snapshot.forEach(doc => totalDay += doc.data().totalAmount);
+      document.getElementById("dailyReport").innerText = "Today's Collection: ₹" + totalDay;
+    }
+
+    showDailyReport();
+  </script>
+</body>
+</html>
